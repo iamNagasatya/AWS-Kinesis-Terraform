@@ -3,8 +3,8 @@ data "aws_caller_identity" "aws_acc" {}
 
 # Create S3 Source Bucket for Kinesis Source
 resource "aws_s3_bucket" "buckets" {
-  for_each = toset(var.buckets_list)
-  bucket   = join("-", [each.value, data.aws_caller_identity.aws_acc.account_id])
+  for_each      = toset(var.buckets_list)
+  bucket        = join("-", [each.value, data.aws_caller_identity.aws_acc.account_id])
   force_destroy = true
   tags = {
     createdBy = "iamnagasatya"
@@ -40,15 +40,17 @@ resource "aws_iam_role" "firehose_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "s3_full_access_to_firehose" {
-  role       = aws_iam_role.firehose_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-  depends_on = [aws_iam_role.firehose_role]
+locals {
+  firehose_policies = {
+    s3_full_access      = "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    kinesis_full_access = "arn:aws:iam::aws:policy/AmazonKinesisFullAccess"
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "kinesis_full_access_to_firehose" {
+resource "aws_iam_role_policy_attachment" "firehose_policy_attachments" {
+  for_each   = local.firehose_policies
   role       = aws_iam_role.firehose_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonKinesisFullAccess"
+  policy_arn = each.value
   depends_on = [aws_iam_role.firehose_role]
 }
 
@@ -70,21 +72,18 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "s3_full_access_to_lambda" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-  depends_on = [aws_iam_role.lambda_role]
+locals {
+  lambda_policies = {
+    s3_full_access              = "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    kinesis_full_access         = "arn:aws:iam::aws:policy/AmazonKinesisFullAccess",
+    lambda_basic_execution_role = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "kinesis_full_access_to_lambda" {
+resource "aws_iam_role_policy_attachment" "lambda_policy_attachments" {
+  for_each   = local.lambda_policies
   role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonKinesisFullAccess"
-  depends_on = [aws_iam_role.lambda_role]
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_basic_execution_to_lambda" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  policy_arn = each.value
   depends_on = [aws_iam_role.lambda_role]
 }
 
