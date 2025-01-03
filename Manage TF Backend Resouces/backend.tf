@@ -1,19 +1,12 @@
-
-terraform {
-  backend "s3" {
-    bucket         = "iamnagasatya-terraform-backend-s3-bucket"
-    key            = "globalstate/s3/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "iamnagasatya-terraform-backend-dynamodb-table"
-    encrypt        = true
-  }
+provider "aws" {
+  region = "us-east-1"
 }
 
 resource "aws_s3_bucket" "backend_bucket" {
-  bucket        = "iamnagasatya-terraform-backend-s3-bucket"
-  force_destroy = false
+  bucket        = "nagasatya-terraform-backend-s3-bucket"
+  force_destroy = true
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -36,7 +29,7 @@ resource "aws_s3_bucket_versioning" "backend_bucket_versioning" {
 }
 
 resource "aws_dynamodb_table" "locks" {
-  name         = "iamnagasatya-terraform-backend-dynamodb-table"
+  name         = "nagasatya-terraform-backend-dynamodb-table"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 
